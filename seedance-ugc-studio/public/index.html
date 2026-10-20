@@ -1,0 +1,244 @@
+<!doctype html>
+<html lang="zh-CN">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <meta name="description" content="上传产品图，自动生成UGC短视频广告导演方案。">
+  <title>Seedance UGC Studio</title>
+  <link rel="stylesheet" href="/styles.css">
+</head>
+<body>
+  <header class="topbar">
+    <a class="brand" href="#" aria-label="Seedance UGC Studio">
+      <span class="brand-mark">S</span>
+      <span><strong>Seedance UGC</strong><small>Director Studio</small></span>
+    </a>
+    <div class="top-actions">
+      <span class="status-dot"><i></i><span id="modeLabel">演示引擎</span></span>
+      <button class="icon-button" id="settingsButton" title="模型接口设置" aria-label="模型接口设置">
+        <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M12 15.5a3.5 3.5 0 1 0 0-7 3.5 3.5 0 0 0 0 7Z"/><path d="M19.4 15a1.7 1.7 0 0 0 .34 1.88l.06.06-2.83 2.83-.06-.06a1.7 1.7 0 0 0-1.88-.34 1.7 1.7 0 0 0-1.03 1.56V21h-4v-.08A1.7 1.7 0 0 0 8.96 19.4a1.7 1.7 0 0 0-1.88.34l-.06.06-2.83-2.83.06-.06A1.7 1.7 0 0 0 4.6 15a1.7 1.7 0 0 0-1.56-1.03H3v-4h.08A1.7 1.7 0 0 0 4.6 8.94a1.7 1.7 0 0 0-.34-1.88L4.2 7l2.83-2.83.06.06a1.7 1.7 0 0 0 1.88.34A1.7 1.7 0 0 0 10 3.01V3h4v.08a1.7 1.7 0 0 0 1.03 1.56 1.7 1.7 0 0 0 1.88-.34l.06-.06L19.8 7l-.06.06a1.7 1.7 0 0 0-.34 1.88A1.7 1.7 0 0 0 20.96 10H21v4h-.08A1.7 1.7 0 0 0 19.4 15Z"/></svg>
+      </button>
+    </div>
+  </header>
+
+  <main class="app-shell">
+    <aside class="step-nav" aria-label="制作步骤">
+      <button class="step-item active" data-step="1"><span>01</span><b>产品输入</b><small>图片与信息</small></button>
+      <button class="step-item" data-step="2"><span>02</span><b>智能定向</b><small>市场与形式</small></button>
+      <button class="step-item" data-step="3"><span>03</span><b>导演方案</b><small>脚本与分镜</small></button>
+      <button class="step-item" data-step="4"><span>04</span><b>模型生成</b><small>图片与视频</small></button>
+    </aside>
+
+    <section class="workspace">
+      <div class="workspace-head">
+        <div>
+          <p class="eyebrow" id="stepEyebrow">STEP 01 · PRODUCT INPUT</p>
+          <h1 id="stepTitle">上传一张产品图</h1>
+          <p id="stepDesc">系统会读取包装与视觉线索，推荐市场、平台、口播语言和视频形式。</p>
+        </div>
+        <div class="head-meter"><span id="progressText">1 / 4</span><div><i id="progressBar"></i></div></div>
+      </div>
+
+      <section class="step-panel active" data-panel="1">
+        <div class="input-layout">
+          <div class="upload-zone" id="uploadZone">
+            <input type="file" id="fileInput" accept="image/png,image/jpeg,image/webp" hidden>
+            <img id="previewImage" alt="产品图预览">
+            <div class="upload-empty" id="uploadEmpty">
+              <div class="upload-icon">
+                <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M12 16V4m0 0L7.5 8.5M12 4l4.5 4.5M5 14v4a2 2 0 0 0 2 2h10a2 2 0 0 0 2-2v-4"/></svg>
+              </div>
+              <strong>拖入产品图片</strong>
+              <span>JPG、PNG、WebP，最大 10MB</span>
+              <button class="secondary-button" id="chooseFile" type="button">选择图片</button>
+            </div>
+            <button class="remove-image" id="removeImage" title="移除图片" aria-label="移除图片">×</button>
+          </div>
+          <div class="input-form">
+            <label>产品名称 <span>选填</span><input id="productName" placeholder="例如：维C精华液"></label>
+            <label>补充描述 <span>选填</span><textarea id="productDescription" rows="5" placeholder="成分、卖点、价格、目标人群、产品页面信息……"></textarea></label>
+            <div class="demo-row">
+              <span>还没有素材？</span>
+              <button class="text-button" id="useDemo">使用演示产品</button>
+            </div>
+            <button class="primary-button" id="analyzeButton">
+              <span>分析产品并自动推荐</span>
+              <svg viewBox="0 0 24 24" aria-hidden="true"><path d="m9 18 6-6-6-6"/></svg>
+            </button>
+          </div>
+        </div>
+      </section>
+
+      <section class="step-panel" data-panel="2">
+        <div class="analysis-banner">
+          <div class="product-mini"><img id="analysisThumb" src="/assets/demo-product.png" alt=""><div><small>识别结果</small><strong id="detectedName">产品</strong><span id="detectedSummary"></span></div></div>
+          <div class="confidence"><strong id="confidenceValue">--</strong><span>分析置信度</span></div>
+        </div>
+        <div class="selection-grid" id="selectionGrid"></div>
+        <div class="notice"><strong>市场判断原则</strong><span id="marketReason">不会在证据不足时直接默认美国市场。</span></div>
+        <div class="panel-actions"><button class="secondary-button back-button" data-back="1">返回修改</button><button class="primary-button" id="planButton">生成完整导演方案</button></div>
+      </section>
+
+      <section class="step-panel" data-panel="3">
+        <div class="plan-toolbar">
+          <div><span class="badge">导演方案</span><h2 id="planTitle">UGC 视频方案</h2></div>
+          <button class="icon-text-button" id="copyPlan"><svg viewBox="0 0 24 24"><path d="M8 8h11v11H8z"/><path d="M5 16H4a1 1 0 0 1-1-1V4a1 1 0 0 1 1-1h11a1 1 0 0 1 1 1v1"/></svg>复制方案</button>
+        </div>
+        <div class="plan-tabs" role="tablist">
+          <button class="active" data-tab="overview">策略总览</button>
+          <button data-tab="hooks">10条 Hook</button>
+          <button data-tab="script">口播脚本</button>
+          <button data-tab="prompts">生成提示词</button>
+          <button data-tab="checklist">检查清单</button>
+        </div>
+        <div class="plan-content" id="planContent"></div>
+        <div class="panel-actions"><button class="secondary-button back-button" data-back="2">调整定向</button><button class="primary-button" id="toGenerate">进入模型生成</button></div>
+      </section>
+
+      <section class="step-panel" data-panel="4">
+        <div class="generation-layout">
+          <div class="generation-column chain-column">
+            <div class="section-title"><div><span class="model-type chain">LINK</span><h2>执行链路</h2></div><span class="badge">步骤 1–3</span></div>
+            <div class="generation-context" id="generationContext"><div class="result-empty">完成第二步和第三步后，定向、脚本与参考素材会在这里串联。</div></div>
+          </div>
+          <div class="generation-column scene-column">
+            <div class="section-title"><div><span class="model-type image">IMG</span><h2>商品驱动参考图</h2></div><span class="badge">图片1驱动</span></div>
+            <div class="reference-summary image-reference-summary" id="imageReferenceSummary">等待商品原图绑定</div>
+            <div class="reference-generator-stack">
+              <section class="reference-generator">
+                <div class="reference-generator-head"><div><b>图片2</b><h3>人物持品图</h3></div><button class="small-button" id="editCreatorPrompt">编辑提示词</button></div>
+                <p>使用图片1商品原图编辑生成，锁定人物身份、手势、持握关系和商品尺度。</p>
+                <textarea class="prompt-box reference-prompt" id="creatorPrompt"></textarea>
+                <button class="primary-button full" id="generateCreator">根据图片1生成人物持品图</button>
+                <div class="generation-result reference-result" id="creatorResult"><div class="result-empty">人物持品图将在这里显示</div></div>
+              </section>
+              <section class="reference-generator">
+                <div class="reference-generator-head"><div><b>图片3</b><h3>商品场景图</h3></div><button class="small-button" id="editScenePrompt">编辑提示词</button></div>
+                <p>使用图片1商品原图编辑生成，并按智能定向与导演分镜适配环境、机位和摆位。</p>
+                <textarea class="prompt-box reference-prompt" id="scenePrompt"></textarea>
+                <button class="primary-button full" id="generateScene">根据图片1生成商品场景图</button>
+                <div class="generation-result reference-result" id="sceneResult"><div class="result-empty">商品场景图将在这里显示</div></div>
+              </section>
+            </div>
+          </div>
+          <div class="generation-column video-column">
+            <div class="section-title"><div><span class="model-type video">VID</span><h2>Seedance 视频</h2></div><button class="small-button" id="editVideoPrompt">编辑提示词</button></div>
+            <div class="reference-summary" id="videoReferenceSummary">等待商品、人物、场景组成参考链</div>
+            <div class="video-reference-preview" id="videoReferencePreview" aria-label="Seedance 严格三参考预览"></div>
+            <div class="seedance-controls" aria-label="Seedance 视频任务参数">
+              <label>生成模式
+                <select id="seedanceMode">
+                  <option value="reference-to-video" selected>多参考 · 商品/持品关系/商品场景</option>
+                  <option value="image-to-video">图生视频 · 首帧/尾帧</option>
+                  <option value="text-to-video">纯文本生成视频</option>
+                </select>
+              </label>
+              <div class="control-grid">
+                <label>时长
+                  <select id="seedanceDuration">
+                    <option value="5">5 秒</option>
+                    <option value="8">8 秒</option>
+                    <option value="10">10 秒</option>
+                    <option value="15" selected>15 秒</option>
+                  </select>
+                </label>
+                <label>画幅 ratio
+                  <select id="seedanceRatio">
+                    <option value="9:16" selected>9:16 竖屏</option>
+                    <option value="16:9">16:9 横屏</option>
+                    <option value="1:1">1:1 方形</option>
+                  </select>
+                </label>
+              </div>
+              <label>参考图片来源
+                <select id="seedanceImageSource">
+                  <option value="generated" selected>严格三参考：商品 + 人物持品 + 商品场景</option>
+                  <option value="custom">严格三参考：自定义持品图与商品场景图</option>
+                </select>
+                <span id="seedanceAssetHint">图片1商品细节最高优先，图片2固定人物持握关系，图片3固定场景与商品摆位。</span>
+              </label>
+              <label>图片2 · 人物持品图 <span>仅使用第一行</span>
+                <textarea id="seedancePerson" rows="2" placeholder="先根据图片1生成人物持品图，或粘贴对应素材 URL / asset:// 地址"></textarea>
+              </label>
+              <label>图片3 · 商品场景图 <span>仅使用第一行</span>
+                <textarea id="seedanceImages" rows="2" placeholder="先根据导演分镜生成商品场景图，或粘贴对应素材 URL / asset:// 地址"></textarea>
+              </label>
+              <section class="reference-targets" aria-label="自定义参考目标">
+                <div class="section-title"><h3>人物 / 物体参考目标 <small id="referenceTargetCount">0 / 6</small></h3><button class="icon-button" type="button" id="addReferenceTarget" title="添加参考目标" aria-label="添加参考目标">+</button></div>
+                <div id="referenceTargetList"></div>
+              </section>
+              <details class="advanced-media">
+                <summary>视频 / 音频参考</summary>
+                <label>参考视频 URL <span>可选，一行一个</span><textarea id="seedanceVideos" rows="2"></textarea></label>
+                <label>参考音频 URL <span>可选，一行一个</span><textarea id="seedanceAudios" rows="2"></textarea></label>
+              </details>
+              <div class="toggle-group">
+                <label><input type="checkbox" id="seedanceAudio" checked> 生成原生声音</label>
+                <label><input type="checkbox" id="seedanceWatermark"> 添加水印</label>
+              </div>
+              <div class="provider-inline">
+                <button class="small-button" type="button" id="checkVideoProvider">检查视频接口</button>
+                <span id="videoProviderStatus">提交前可先检查鉴权与供应商状态。</span>
+              </div>
+            </div>
+            <div class="prompt-reference-selector" aria-label="提示词参考图引用">
+              <label>提示词参考图
+                <select id="promptReferenceSelector">
+                </select>
+              </label>
+              <button class="secondary-button" type="button" id="insertPromptReference">插入引用</button>
+            </div>
+            <textarea class="prompt-box" id="videoPrompt" aria-label="视频提示词"></textarea>
+            <details class="reference-compiled"><summary>引用对应与提交提示词</summary><div id="referenceBindingPreview"></div><pre id="compiledVideoPrompt"></pre></details>
+            <div class="video-actions">
+              <button class="primary-button full dark" id="generateVideo">提交 Seedance 任务</button>
+              <button class="secondary-button full" id="pollVideoTask">立即刷新状态</button>
+            </div>
+            <div class="generation-result" id="videoResult"><div class="result-empty">视频任务状态将在这里显示</div></div>
+          </div>
+        </div>
+        <div class="panel-actions"><button class="secondary-button back-button" data-back="3">返回方案</button><button class="secondary-button" id="newProject">新建项目</button></div>
+      </section>
+    </section>
+  </main>
+
+  <dialog id="settingsDialog">
+    <form method="dialog" class="dialog-shell">
+      <div class="dialog-head"><div><small>MODEL GATEWAY</small><h2>模型接口设置</h2></div><button class="icon-button" value="cancel" aria-label="关闭">×</button></div>
+      <p class="dialog-note">密钥仅保存在当前浏览器。生产部署建议改为服务器环境变量与加密凭据存储。</p>
+      <div class="api-tabs">
+        <button type="button" class="active" data-api-tab="text">文本推理</button>
+        <button type="button" data-api-tab="image">图片模型</button>
+        <button type="button" data-api-tab="video">视频模型</button>
+      </div>
+      <div id="apiForms"></div>
+      <div id="providerCheckResult" aria-live="polite"></div>
+      <div class="dialog-actions"><button class="secondary-button" value="cancel">取消</button><button class="secondary-button" type="button" id="testProvider">测试当前接口</button><button class="primary-button" type="button" id="saveSettings">保存设置</button></div>
+    </form>
+  </dialog>
+
+  <dialog id="promptEditorDialog" class="prompt-editor-dialog">
+    <form method="dialog" class="prompt-editor-shell">
+      <div class="dialog-head">
+        <div><small>PROMPT EDITOR</small><h2 id="promptEditorTitle">编辑提示词</h2></div>
+        <button class="icon-button" value="cancel" aria-label="关闭">×</button>
+      </div>
+      <div class="prompt-reference-selector">
+        <label>参考目标<select id="editorReferenceSelector"></select></label>
+        <button class="secondary-button" type="button" id="insertEditorReference">插入引用</button>
+      </div>
+      <label class="prompt-editor-label">完整提示词
+        <textarea id="promptEditorText" spellcheck="false"></textarea>
+      </label>
+      <div class="dialog-actions">
+        <button class="secondary-button" value="cancel">取消</button>
+        <button class="primary-button" type="button" id="savePromptEditor">保存提示词</button>
+      </div>
+    </form>
+  </dialog>
+
+  <div class="toast" id="toast"></div>
+  <script src="/references.js"></script>
+  <script src="/app.js"></script>
+</body>
+</html>

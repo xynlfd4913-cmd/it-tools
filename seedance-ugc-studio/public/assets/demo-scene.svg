@@ -1,0 +1,20 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 720 1280">
+  <rect width="720" height="1280" fill="#eef2ef"/>
+  <rect x="0" y="0" width="720" height="870" fill="#f7f8f6"/>
+  <rect x="54" y="95" width="265" height="450" fill="#dbe8e9" stroke="#cad3d1" stroke-width="8"/>
+  <path d="M187 95v450M54 320h265" stroke="#ffffff" stroke-width="10"/>
+  <rect x="385" y="155" width="260" height="310" fill="#e5e1d7"/>
+  <rect x="410" y="180" width="210" height="260" fill="#cbd9d0"/>
+  <rect x="0" y="870" width="720" height="410" fill="#d8c5ad"/>
+  <path d="M0 900h720M0 1010h720M0 1120h720M130 870v410M360 870v410M590 870v410" stroke="#bfa98f" stroke-width="5"/>
+  <rect x="85" y="730" width="550" height="120" rx="8" fill="#f6f4ef" stroke="#c9c9c3" stroke-width="5"/>
+  <rect x="120" y="660" width="100" height="70" fill="#496c58"/>
+  <circle cx="170" cy="630" r="62" fill="#73937c"/>
+  <ellipse cx="435" cy="741" rx="92" ry="18" fill="#c9c4ba" opacity=".6"/>
+  <rect x="385" y="520" width="100" height="218" rx="20" fill="#6f381d" stroke="#3f2518" stroke-width="7"/>
+  <rect x="378" y="570" width="114" height="112" rx="8" fill="#f2e9d9"/>
+  <text x="435" y="614" text-anchor="middle" font-family="Arial, sans-serif" font-size="22" fill="#7c4f35">LUMA</text>
+  <text x="435" y="646" text-anchor="middle" font-family="Arial, sans-serif" font-size="16" fill="#7c4f35">C SERUM</text>
+  <rect x="397" y="471" width="76" height="64" rx="14" fill="#f6f1e8" stroke="#d7d0c4" stroke-width="5"/>
+  <path d="M416 471v-42c0-27 38-27 38 0v42" fill="#f6f1e8" stroke="#d7d0c4" stroke-width="5"/>
+</svg>

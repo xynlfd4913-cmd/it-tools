@@ -1,0 +1,19 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 720 1280">
+  <rect width="720" height="1280" fill="#eef1ef"/>
+  <rect x="95" y="90" width="530" height="1100" fill="#f8faf9" stroke="#c8d0cc" stroke-width="4"/>
+  <circle cx="360" cy="350" r="138" fill="#d9a884"/>
+  <path d="M226 336c8-158 258-174 275 7-42-62-88-91-142-91-53 0-98 27-133 84z" fill="#252824"/>
+  <circle cx="315" cy="352" r="10" fill="#2d2825"/>
+  <circle cx="405" cy="352" r="10" fill="#2d2825"/>
+  <path d="M320 421c28 24 55 24 82 0" fill="none" stroke="#8f5142" stroke-width="8" stroke-linecap="round"/>
+  <path d="M176 1050c14-322 92-474 184-474s170 152 184 474z" fill="#23483b"/>
+  <path d="M244 602c58 55 174 55 232 0" fill="none" stroke="#f5f7f6" stroke-width="12"/>
+  <path d="M220 760c-62 76-80 168-45 235 28 53 90 58 137 11" fill="none" stroke="#d9a884" stroke-width="54" stroke-linecap="round"/>
+  <path d="M500 760c62 76 80 168 45 235-28 53-90 58-137 11" fill="none" stroke="#d9a884" stroke-width="54" stroke-linecap="round"/>
+  <rect x="302" y="775" width="116" height="225" rx="24" fill="#6f381d" stroke="#3f2518" stroke-width="7"/>
+  <rect x="294" y="830" width="132" height="112" rx="8" fill="#f2e9d9"/>
+  <text x="360" y="875" text-anchor="middle" font-family="Arial, sans-serif" font-size="24" fill="#7c4f35">LUMA</text>
+  <text x="360" y="908" text-anchor="middle" font-family="Arial, sans-serif" font-size="18" fill="#7c4f35">C SERUM</text>
+  <rect x="318" y="727" width="84" height="65" rx="14" fill="#f6f1e8" stroke="#d7d0c4" stroke-width="5"/>
+  <path d="M340 727v-42c0-28 40-28 40 0v42" fill="#f6f1e8" stroke="#d7d0c4" stroke-width="5"/>
+</svg>

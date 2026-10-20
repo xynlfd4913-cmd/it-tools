@@ -1,0 +1,18 @@
+{
+  "name": "seedance-ugc-studio",
+  "version": "0.1.0",
+  "private": true,
+  "description": "Upload-first UGC ad director studio with pluggable text, image, and video model APIs.",
+  "scripts": {
+    "start": "node server.js",
+    "dev": "node server.js",
+    "check": "node --check server.js && node --check public/app.js && node --check public/references.js",
+    "test": "node --test test/*.test.js"
+  },
+  "engines": {
+    "node": ">=20"
+  },
+  "dependencies": {
+    "sharp": "0.35.3"
+  }
+}
