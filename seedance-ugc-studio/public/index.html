@@ -6,14 +6,16 @@
   <meta name="description" content="上传产品图，自动生成UGC短视频广告导演方案。">
   <title>Seedance UGC Studio</title>
   <link rel="stylesheet" href="/styles.css">
+  <link rel="stylesheet" href="/business.css">
 </head>
 <body>
   <header class="topbar">
     <a class="brand" href="#" aria-label="Seedance UGC Studio">
       <span class="brand-mark">S</span>
-      <span><strong>Seedance UGC</strong><small>Director Studio</small></span>
+      <span><strong>Seedance UGC</strong><small>合作接单 · 视频交付</small></span>
     </a>
     <div class="top-actions">
+      <nav class="view-switch" aria-label="工作区"><button type="button" data-view="business">合作接单</button><button type="button" class="active" data-view="studio">视频制作</button></nav>
       <span class="status-dot"><i></i><span id="modeLabel">演示引擎</span></span>
       <button class="icon-button" id="settingsButton" title="模型接口设置" aria-label="模型接口设置">
         <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M12 15.5a3.5 3.5 0 1 0 0-7 3.5 3.5 0 0 0 0 7Z"/><path d="M19.4 15a1.7 1.7 0 0 0 .34 1.88l.06.06-2.83 2.83-.06-.06a1.7 1.7 0 0 0-1.88-.34 1.7 1.7 0 0 0-1.03 1.56V21h-4v-.08A1.7 1.7 0 0 0 8.96 19.4a1.7 1.7 0 0 0-1.88.34l-.06.06-2.83-2.83.06-.06A1.7 1.7 0 0 0 4.6 15a1.7 1.7 0 0 0-1.56-1.03H3v-4h.08A1.7 1.7 0 0 0 4.6 8.94a1.7 1.7 0 0 0-.34-1.88L4.2 7l2.83-2.83.06.06a1.7 1.7 0 0 0 1.88.34A1.7 1.7 0 0 0 10 3.01V3h4v.08a1.7 1.7 0 0 0 1.03 1.56 1.7 1.7 0 0 0 1.88-.34l.06-.06L19.8 7l-.06.06a1.7 1.7 0 0 0-.34 1.88A1.7 1.7 0 0 0 20.96 10H21v4h-.08A1.7 1.7 0 0 0 19.4 15Z"/></svg>
@@ -21,7 +23,16 @@
     </div>
   </header>
 
-  <main class="app-shell">
+  <section id="businessWorkspace" class="business-shell" hidden aria-label="合作接单中心">
+    <div class="business-heading"><div><p class="eyebrow">PARTNER OPERATIONS</p><h1>让合作带来订单</h1><p>伙伴带客户，协作者做交付；您掌握报价、回款和每单留存。</p></div><button type="button" class="primary-button" id="newBusinessOrder">记录客户 / 订单</button></div>
+    <p class="business-scope">本机经营台 · 集中管理合作记录，通过推广包、需求单与任务单对外协作。</p>
+    <div id="businessError" role="alert" hidden></div>
+    <div id="businessStats" class="business-stats" aria-live="polite"></div>
+    <div class="business-toolbar"><nav class="business-tabs" aria-label="经营栏目"><button type="button" class="active" data-business-tab="orders">客户与订单</button><button type="button" data-business-tab="partners">合作伙伴</button><button type="button" data-business-tab="offers">服务与推广</button><button type="button" data-business-tab="activity">经营记录</button></nav><button type="button" class="small-button" id="refreshBusiness">刷新数据</button></div>
+    <div id="businessContent" aria-live="polite"><p>正在读取本机经营数据…</p></div>
+  </section>
+
+  <main class="app-shell" id="studioWorkspace">
     <aside class="step-nav" aria-label="制作步骤">
       <button class="step-item active" data-step="1"><span>01</span><b>产品输入</b><small>图片与信息</small></button>
       <button class="step-item" data-step="2"><span>02</span><b>智能定向</b><small>市场与形式</small></button>
@@ -30,6 +41,7 @@
     </aside>
 
     <section class="workspace">
+      <div id="businessOrderContext" class="business-order-context" hidden><div><strong id="businessOrderLabel"></strong><small>当前素材与成片归属于此订单</small></div><button type="button" class="small-button" id="returnToBusiness">返回订单</button><button type="button" class="small-button" id="attachBusinessVideo">成片写回订单</button></div>
       <div class="workspace-head">
         <div>
           <p class="eyebrow" id="stepEyebrow">STEP 01 · PRODUCT INPUT</p>
@@ -140,6 +152,7 @@
                     <option value="8">8 秒</option>
                     <option value="10">10 秒</option>
                     <option value="15" selected>15 秒</option>
+                    <option value="30">30 秒</option>
                   </select>
                 </label>
                 <label>画幅 ratio
@@ -150,6 +163,7 @@
                   </select>
                 </label>
               </div>
+              <p class="dialog-note">30 秒适用于 Seedance 2.5 等长视频模型，请在右上角设置中填写供应商支持的模型名称。</p>
               <label>参考图片来源
                 <select id="seedanceImageSource">
                   <option value="generated" selected>严格三参考：商品 + 人物持品 + 商品场景</option>
@@ -238,7 +252,9 @@
   </dialog>
 
   <div class="toast" id="toast"></div>
+  <dialog id="businessDialog"><div class="business-dialog-shell"><div class="dialog-head"><h2 id="businessDialogTitle">经营记录</h2><button type="button" class="icon-button" id="closeBusinessDialog" aria-label="关闭经营表单">×</button></div><form id="businessForm"></form></div></dialog>
   <script src="/references.js"></script>
   <script src="/app.js"></script>
+  <script src="/business.js"></script>
 </body>
 </html>

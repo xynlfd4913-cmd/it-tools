@@ -3,9 +3,9 @@ FROM node:24-alpine
 WORKDIR /app
 COPY package.json package-lock.json ./
 RUN npm ci --omit=dev
-COPY server.js ./
+COPY server.js business.js ./
 COPY public ./public
-RUN mkdir -p /app/public/generated && chown -R node:node /app/public/generated
+RUN mkdir -p /app/public/generated /app/.runtime && chown -R node:node /app/public/generated /app/.runtime
 
 ENV HOST=0.0.0.0
 ENV PORT=4173

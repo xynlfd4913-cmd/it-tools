@@ -6,6 +6,7 @@ const { Readable } = require("node:stream");
 const sharp = require("sharp");
 const { version: APP_VERSION } = require("./package.json");
 const ReferenceBindings = require("./public/references");
+const { createBusinessStore } = require("./business");
 
 const PUBLIC_DIR = path.join(__dirname, "public");
 const GENERATED_DIR = path.join(PUBLIC_DIR, "generated");
@@ -13,7 +14,7 @@ const MAX_BODY = 15 * 1024 * 1024;
 const PROVIDER_TIMEOUT_MS = 60_000;
 const ALLOWED_GENERATION_TYPES = new Set(["reference-to-video", "image-to-video", "text-to-video"]);
 const ALLOWED_RATIOS = new Set(["9:16", "16:9", "1:1"]);
-const ALLOWED_DURATIONS = new Set([5, 8, 10, 15]);
+const ALLOWED_DURATIONS = new Set([5, 8, 10, 15, 30]);
 
 function loadLocalEnv() {
   const envPath = path.join(__dirname, ".env");
@@ -31,6 +32,8 @@ function loadLocalEnv() {
 }
 
 loadLocalEnv();
+
+const businessStore = createBusinessStore(process.env.BUSINESS_DATA_FILE || path.join(__dirname, ".runtime", "business.json"));
 
 const PORT = Number(process.env.PORT || 4173);
 const HOST = process.env.HOST || "127.0.0.1";
@@ -73,19 +76,23 @@ function healthPayload() {
 
 function readJson(req) {
   return new Promise((resolve, reject) => {
-    let raw = "";
+    const chunks = [];
     let size = 0;
     req.on("data", (chunk) => {
       size += chunk.length;
-      raw += chunk;
       if (size > MAX_BODY) {
         reject(new Error("请求内容超过 15MB"));
-        req.destroy();
+        return;
       }
+      chunks.push(chunk);
     });
     req.on("end", () => {
       try {
-        resolve(raw ? JSON.parse(raw) : {});
+        if (size > MAX_BODY) return;
+        const raw = Buffer.concat(chunks).toString("utf8");
+        const body = raw ? JSON.parse(raw) : {};
+        if (!body || typeof body !== "object" || Array.isArray(body)) throw new Error("JSON 对象无效");
+        resolve(body);
       } catch {
         reject(new Error("JSON 格式无效"));
       }
@@ -548,33 +555,25 @@ async function requestProvider(url, options, retryCloudflare502 = false, timeout
 }
 
 function demoAnalysis(body) {
-  const hint = String(body.productName || body.description || "").toLowerCase();
-  const category = hint.includes("coffee") || hint.includes("咖啡")
-    ? "便携饮品"
-    : hint.includes("pet") || hint.includes("宠物")
-      ? "宠物用品"
-      : "护肤精华";
   return {
     mode: "demo",
     product: {
-      name: body.productName || (category === "护肤精华" ? "LUMA C Serum" : "待命名产品"),
-      category,
-      summary: category === "护肤精华"
-        ? "一款适合晨间护肤场景、强调轻盈使用体验的滴管精华。"
-        : "适合以真实使用演示建立信任的消费品。",
-      visibleClues: ["英文包装", "简洁电商视觉", "便携规格"],
-      claimsToVerify: ["具体成分浓度", "功效时长", "认证与测试数据"],
+      name: String(body.productName || "待命名产品").trim(),
+      category: "待客户确认",
+      summary: String(body.description || "尚未提供产品说明，请先向客户确认真实用途与卖点。"),
+      visibleClues: ["本地规则草稿：未调用视觉或文本模型，不能识别图片内容"],
+      claimsToVerify: ["产品外观与材质", "真实用途与卖点", "素材授权与验收标准"],
     },
     recommendations: {
-      market: "跨境电商泛英语市场",
-      marketReason: "包装以英文为主，但未出现足够证据锁定美国市场。",
-      platform: "TikTok / Instagram Reels",
-      language: "美式英文",
+      market: "待客户确认",
+      marketReason: "当前为本地草稿，未识别图片或推断包装语言。请按客户真实投放地区、平台和语言选择。",
+      platform: "待客户确认",
+      language: "中文普通话",
       format: "真人口播 + 手部演示 + 体验反应",
       creator: "虚拟达人",
       duration: "15秒",
     },
-    confidence: 82,
+    confidence: 0,
   };
 }
 
@@ -793,7 +792,7 @@ async function analyze(body) {
   if (!body.config?.text?.enabled) return demoAnalysis(body);
   const prompt = `你是跨境UGC广告导演。分析产品图片和文字，不能在证据不足时默认美国市场。返回严格JSON：
 {"product":{"name":"","category":"","summary":"","visibleClues":[],"claimsToVerify":[]},"recommendations":{"market":"","marketReason":"","platform":"","language":"","format":"","creator":"","duration":""},"confidence":0}
-市场可选泛英语市场、中国、日本、韩国、东南亚、欧洲、中东等；平台按市场推荐；语言可包含粤语；时长仅5秒/8秒/10秒/15秒。`;
+市场可选泛英语市场、中国、日本、韩国、东南亚、欧洲、中东等；平台按市场推荐；语言可包含粤语；时长仅5秒/8秒/10秒/15秒/30秒，30秒适用于支持该时长的视频模型。`;
   const textOnlyContent = `产品名称：${body.productName || "未知"}
 描述：${body.description || "未提供"}
 图片状态：${body.imageDataUrl ? "用户已上传产品图，但当前文本接口可能无法读取图片；如果无法处理图片，请只基于产品名称和描述判断，并在 visibleClues 中写明“未读取图片内容”。" : "未上传图片"}`;
@@ -1037,7 +1036,7 @@ function validateSeedanceInput(input) {
 
   if (!ALLOWED_GENERATION_TYPES.has(generationType)) throw new Error("Seedance 生成模式无效");
   if (!ALLOWED_RATIOS.has(ratio)) throw new Error("Seedance 画幅仅支持 9:16、16:9 或 1:1");
-  if (!ALLOWED_DURATIONS.has(duration)) throw new Error("Seedance 时长仅支持 5、8、10 或 15 秒");
+  if (!ALLOWED_DURATIONS.has(duration)) throw new Error("成片时长请选择 5、8、10、15 或 30 秒；实际支持时长以所选模型和供应商为准");
   if (imageUrls.length > 9) throw new Error("参考图片最多 9 张");
   if (videoUrls.length > 3) throw new Error("参考视频最多 3 条");
   if (audioUrls.length > 3) throw new Error("参考音频最多 3 条");
@@ -1078,8 +1077,9 @@ function seedanceConfig(body, options = {}) {
   const baseUrl = normalizeBaseUrl(config.baseUrl, "https://yuncenai.com");
   const createEndpoint = normalizeEndpoint(config.endpoint, "/api/v3/contents/generations/tasks");
   const taskEndpoint = normalizeEndpoint(config.taskEndpoint, "/api/v3/contents/generations/tasks");
+  const model = config.model || "doubao-seedance-2.0";
   const enabled = options.forceLive || config.enabled || Boolean(envApiKey);
-  if (!enabled) return { demo: true, baseUrl, createEndpoint, taskEndpoint };
+  if (!enabled) return { demo: true, baseUrl, createEndpoint, taskEndpoint, model };
   if (!apiKey) throw new Error("请先在视频模型设置或 .env 中填写 Seedance API Key");
   return {
     demo: false,
@@ -1087,7 +1087,7 @@ function seedanceConfig(body, options = {}) {
     baseUrl,
     createEndpoint,
     taskEndpoint,
-    model: config.model || "doubao-seedance-2.0",
+    model,
   };
 }
 
@@ -1432,9 +1432,9 @@ async function createSeedanceTask(body) {
       mode: "demo",
       taskId,
       status: "queued",
-      message: "演示模式：已模拟提交 Yuncenai Seedance2.0 任务。启用真实视频 API 后会提交到供应商。",
+      message: `演示模式：已模拟提交 ${normalizedInput.model || config.model} 任务。启用真实视频 API 后会提交到供应商。`,
       request: {
-        model: normalizedInput.model || "doubao-seedance-2.0",
+        model: normalizedInput.model || config.model,
         content: prepared.content,
         generate_audio: normalizedInput.generate_audio !== false,
         ratio: normalizedInput.ratio,
@@ -1617,7 +1617,10 @@ async function handleApi(req, res, pathname) {
 }
 
 function serveStatic(res, pathname) {
-  const relative = pathname === "/" ? "index.html" : decodeURIComponent(pathname.slice(1));
+  let relative;
+  try { relative = pathname === "/" ? "index.html" : decodeURIComponent(pathname.slice(1)); }
+  catch { return sendJson(res, 400, { error: "页面地址编码无效" }); }
+  if (relative.includes("\0")) return sendJson(res, 400, { error: "页面地址无效" });
   const filePath = path.normalize(path.join(PUBLIC_DIR, relative));
   const publicRoot = `${path.normalize(PUBLIC_DIR)}${path.sep}`;
   if (!filePath.startsWith(publicRoot)) return sendJson(res, 403, { error: "禁止访问" });
@@ -1641,8 +1644,41 @@ function serveStatic(res, pathname) {
   });
 }
 
+async function handleBusiness(req, res, url) {
+  try {
+    const host = new URL(`http://${req.headers.host}`);
+    const remote = req.socket.remoteAddress;
+    if (!["127.0.0.1", "::1", "::ffff:127.0.0.1"].includes(remote) || !["127.0.0.1", "localhost", "[::1]"].includes(host.hostname)) return sendJson(res, 403, { error: "合作经营数据仅供本机管理，不能通过公网或局域网读取" });
+    if (req.headers.origin && req.headers.origin !== host.origin) return sendJson(res, 403, { error: "拒绝其他网站访问经营数据" });
+    if (req.method === "GET" && url.pathname === "/api/business") return sendJson(res, 200, businessStore.snapshot());
+    if (req.method === "GET" && ["/api/business/orders.csv", "/api/business/partner.csv"].includes(url.pathname)) {
+      const partnerId = url.pathname.endsWith("partner.csv") ? url.searchParams.get("id") : "";
+      if (url.pathname.endsWith("partner.csv") && !partnerId) return sendJson(res, 400, { error: "缺少合作伙伴编号" });
+      const csv = businessStore.csv(partnerId);
+      res.writeHead(200, { "Content-Type": "text/csv; charset=utf-8", "Content-Disposition": `attachment; filename="${partnerId ? "partner-report" : "orders"}.csv"`, "Cache-Control": "no-store", "X-Content-Type-Options": "nosniff" });
+      return res.end(csv);
+    }
+    if (req.method === "GET" && url.pathname === "/api/business/export") {
+      res.setHeader("Content-Disposition", 'attachment; filename="business-backup.json"');
+      return sendJson(res, 200, businessStore.export());
+    }
+    const action = url.pathname.slice("/api/business/".length);
+    if (req.method !== "POST") return sendJson(res, 405, { error: "经营接口仅支持 GET / POST" });
+    if (!/^application\/json(?:;|$)/i.test(req.headers["content-type"] || "")) return sendJson(res, 415, { error: "经营操作需要 application/json" });
+    if (!["settings", "partner", "order", "settlement"].includes(action)) return sendJson(res, 404, { error: "经营操作不存在" });
+    return sendJson(res, 200, businessStore.mutate(action, await readJson(req)));
+  } catch (error) { return sendJson(res, error.status || 400, { error: error.message || "经营数据保存失败" }); }
+}
+
 const server = http.createServer((req, res) => {
-  const url = new URL(req.url, `http://${req.headers.host}`);
+  let url;
+  try { url = new URL(req.url, `http://${req.headers.host}`); }
+  catch { return sendJson(res, 400, { error: "请求地址无效" }); }
+  if (req.method === "POST" && url.pathname.startsWith("/api/")) {
+    if (req.headers.origin && req.headers.origin !== new URL(`http://${req.headers.host}`).origin) return sendJson(res, 403, { error: "拒绝其他网站发起工作台操作" });
+    if (!/^application\/json(?:;|$)/i.test(req.headers["content-type"] || "")) return sendJson(res, 415, { error: "操作需要 application/json" });
+  }
+  if (url.pathname === "/api/business" || url.pathname.startsWith("/api/business/")) return handleBusiness(req, res, url);
   if (req.method === "POST" && url.pathname === "/api/seedance/download") {
     return downloadSeedanceVideo(req, res);
   }

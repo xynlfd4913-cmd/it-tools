@@ -6,6 +6,9 @@ const state = {
   imageDataUrl: "",
   analysis: null,
   selections: null,
+  businessDuration: null,
+  activeRequests: 0,
+  lastVideoDuration: 0,
   plan: null,
   generatedCreatorUrls: JSON.parse(localStorage.getItem("seedance-generated-creator-urls-v2") || "[]"),
   generatedSceneUrls: JSON.parse(localStorage.getItem("seedance-generated-scene-urls-v2") || "[]"),
@@ -61,7 +64,7 @@ const selectionOptions = {
   language: ["美式英文", "英式英文", "中文普通话", "粤语", "日文", "韩文", "泰文", "越南语", "印尼语", "西语", "葡语", "阿语"],
   format: ["真人口播 + 手部演示 + 体验反应", "旁白 + 产品特写", "手部演示", "开箱测评", "剧情对话", "前后对比", "混合形式"],
   creator: ["虚拟达人", "已有固定达人", "仅手部出镜", "无人物"],
-  duration: ["15秒", "10秒", "8秒", "5秒"],
+  duration: ["15秒", "30秒", "10秒", "8秒", "5秒"],
 };
 
 const selectionLabels = {
@@ -114,14 +117,17 @@ function setLoading(button, loading, text) {
 }
 
 async function post(url, body) {
-  const response = await fetch(url, {
+  state.activeRequests += 1;
+  try {
+    const response = await fetch(url, {
     method: "POST",
     headers: { "Content-Type": "application/json" },
     body: JSON.stringify(body),
   });
   const data = await response.json();
   if (!response.ok) throw new Error(data.error || "请求失败");
-  return data;
+    return data;
+  } finally { state.activeRequests -= 1; }
 }
 
 function goToStep(step) {
@@ -173,6 +179,7 @@ function clearPlanningState() {
 }
 
 function setImage(dataUrl) {
+  if (state.activeRequests) return toast("正在处理当前项目，请等待请求结束后再更换商品素材");
   if (dataUrl !== state.imageDataUrl) clearPlanningState();
   state.imageDataUrl = dataUrl;
   $("#previewImage").src = dataUrl;
@@ -213,7 +220,7 @@ function renderSelections() {
       <select id="select-${key}" data-selection="${key}">
         ${merged.map((option) => `<option ${option === current ? "selected" : ""}>${option}</option>`).join("")}
       </select>
-      <small>AI 推荐 · 可修改</small>
+      <small>${key === "duration" ? "30秒需使用支持长视频的模型，如 Seedance 2.5" : state.analysis?.mode === "demo" ? "本地草稿 · 请确认" : "AI 推荐 · 可修改"}</small>
     </div>`;
   }).join("");
 }
@@ -233,6 +240,7 @@ async function analyzeProduct() {
     clearGeneratedOutputs();
     state.analysis = analysis;
     state.selections = Object.fromEntries(Object.keys(selectionOptions).map((key) => [key, state.analysis.recommendations?.[key] || selectionOptions[key][0]]));
+    if (state.businessDuration) state.selections.duration = `${state.businessDuration}秒`;
     const product = state.analysis.product;
     $("#detectedName").textContent = product.name || "未命名产品";
     $("#detectedSummary").textContent = product.summary || "";
@@ -935,6 +943,7 @@ async function submitSeedanceTask() {
     }
     const input = seedanceInput();
     const data = await post("/api/seedance/create", { input, config: state.config });
+    state.lastVideoDuration = input.duration;
     const task = renderVideoTask(data);
     const details = [];
     if (data.materializedImages) details.push(`${data.materializedImages} 张图已转素材库引用`);
@@ -1078,7 +1087,8 @@ function renderApiForms(active = "text") {
     return `<div class="api-form ${type === active ? "active" : ""}" data-api-form="${type}">
       <label class="toggle-line">启用真实${labels[type]} API <input type="checkbox" data-config="${type}.enabled" ${config.enabled ? "checked" : ""}></label>
       <label class="full-field">API Base URL<input data-config="${type}.baseUrl" value="${escapeHtml(config.baseUrl)}" placeholder="https://api.example.com/v1"></label>
-      <label>模型名称<input data-config="${type}.model" value="${escapeHtml(config.model)}" placeholder="model-name"></label>
+      <label>模型名称<input data-config="${type}.model" value="${escapeHtml(config.model)}" placeholder="model-name" ${type === "video" ? 'list="videoModelOptions"' : ""}></label>
+      ${type === "video" ? `<datalist id="videoModelOptions"><option value="doubao-seedance-2.0">Seedance 2.0</option><option value="doubao-seedance-2.5">Seedance 2.5</option></datalist><p class="dialog-note full-field">支持 Seedance 2.5 等兼容当前任务接口的新模型。可选择候选名称或填写供应商提供的完整模型 ID；30 秒需供应商及模型实际支持，Seedance 2.0 系列请选择 15 秒以内。</p>` : ""}
       ${type !== "text" ? `<label>Endpoint<input data-config="${type}.endpoint" value="${escapeHtml(config.endpoint || "")}" placeholder="${type === "image" ? "/v1/images/generations" : "/api/v3/contents/generations/tasks"}"></label>` : ""}
       ${type === "image" ? `<label class="full-field">参考图编辑 Endpoint<input data-config="image.editEndpoint" value="${escapeHtml(config.editEndpoint || "/v1/images/edits")}" placeholder="/v1/images/edits"></label>` : ""}
       ${type === "video" ? `<label>查询 Endpoint<input data-config="${type}.taskEndpoint" value="${escapeHtml(config.taskEndpoint || "/api/v3/contents/generations/tasks")}" placeholder="/api/v3/contents/generations/tasks"></label>` : ""}
@@ -1189,6 +1199,10 @@ async function loadServerCapabilities() {
 }
 
 function resetProject() {
+  if (state.activeRequests) return toast("当前项目仍在处理，请等待请求结束后再新建或切换订单");
+  state.lastVideoDuration = 0;
+  state.businessDuration = null;
+  window.clearBusinessOrder?.();
   stopAutoPoll();
   state.analysis = null;
   state.plan = null;
@@ -1222,6 +1236,22 @@ function resetProject() {
   updateSeedanceAssetHint();
   goToStep(1);
 }
+
+window.prepareBusinessOrder = (order) => {
+  if (state.activeRequests) { toast("当前项目仍在处理，请等待请求结束后再切换订单"); return false; }
+  if ((state.imageDataUrl || state.plan) && !window.confirm("切换订单会清空当前页面的制作素材和方案。已写回的订单交付链接会保留。是否继续？")) return false;
+  resetProject();
+  state.businessDuration = order.duration;
+  $("#productName").value = order.product;
+  $("#productDescription").value = order.brief;
+  $("#seedanceDuration").value = String(order.duration);
+  toast("订单需求已带入，请上传该订单对应的商品图片");
+  return true;
+};
+window.currentBusinessVideo = () => {
+  if (!state.lastVideoTaskId || state.lastVideoTaskId.startsWith("demo-") || !isSuccessfulVideoStatus(state.lastVideoTaskStatus)) return "";
+  return state.lastVideoUrl ? { url: state.lastVideoUrl, duration: state.lastVideoDuration } : null;
+};
 
 $("#chooseFile").addEventListener("click", () => $("#fileInput").click());
 $("#fileInput").addEventListener("change", (event) => loadFile(event.target.files[0]));

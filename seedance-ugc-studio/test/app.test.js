@@ -138,6 +138,17 @@ test("Seedance UGC Studio architecture flow", async (t) => {
     assert.match(await page.text(), /Seedance UGC/);
   });
 
+  await t.test("local analysis preserves customer requirements without inventing visual facts", async () => {
+    const result = await jsonRequest(baseUrl, "/api/analyze", { productName: "原木衣柜", description: "黑胡桃原木，30秒，面向本地装修客户", config: { text: { enabled: false } } });
+    assert.equal(result.response.status, 200);
+    assert.equal(result.data.product.name, "原木衣柜");
+    assert.match(result.data.product.summary, /黑胡桃原木/);
+    assert.doesNotMatch(result.data.product.summary, /护肤|精华/);
+    assert.equal(result.data.confidence, 0);
+    assert.match(result.data.product.visibleClues.join(""), /未调用/);
+    assert.equal(result.data.recommendations.market, "待客户确认");
+  });
+
   await t.test("demo submission and polling use a stable task contract", async () => {
     const created = await jsonRequest(baseUrl, "/api/seedance/create", {
       input: {
@@ -254,6 +265,83 @@ test("Seedance UGC Studio architecture flow", async (t) => {
     assert.match(result.data.videoPrompt, /图片3是商品场景构图图/);
     assert.match(result.data.videoPrompt, /最终画面只能有一件图片1商品/);
     assert.match(result.data.videoPrompt, /全程使用粤语自然口播/);
+  });
+
+  await t.test("30 second director plan keeps the full timeline and video prompt", async () => {
+    const result = await jsonRequest(baseUrl, "/api/plan", {
+      analysis: { product: { name: "测试钢笔", category: "文具" } },
+      selections: { market: "中国大陆", platform: "抖音", language: "中文普通话", duration: "30秒" },
+      config: { text: { enabled: false } },
+    });
+    assert.equal(result.response.status, 200);
+    assert.equal(result.data.targeting.durationSeconds, 30);
+    assert.equal(result.data.targeting.duration, "30秒");
+    assert.match(result.data.title, /30秒/);
+    assert.match(result.data.videoPrompt, /30秒/);
+    let previousEnd = 0;
+    for (const row of result.data.script) {
+      const [, start, end] = row.time.match(/^(\d+)-(\d+)s$/);
+      assert.equal(Number(start), previousEnd);
+      assert.ok(Number(end) > Number(start));
+      previousEnd = Number(end);
+    }
+    assert.equal(previousEnd, 30);
+  });
+
+  await t.test("30 second validation and demo preserve configured and explicit new model IDs", async () => {
+    for (const model of ["doubao-seedance-2.5", "provider-custom-video-model"]) {
+      const body = {
+        input: { prompt: "30秒产品展示", generation_type: "text-to-video", duration: 30 },
+        config: { video: { enabled: false, model } },
+      };
+      const validated = await jsonRequest(baseUrl, "/api/seedance/validate", body);
+      assert.equal(validated.response.status, 200);
+      assert.equal(validated.data.audit.duration, 30);
+      assert.equal(validated.data.audit.model, model);
+      const created = await jsonRequest(baseUrl, "/api/seedance/create", body);
+      assert.equal(created.response.status, 200);
+      assert.equal(created.data.mode, "demo");
+      assert.equal(created.data.request.duration, 30);
+      assert.equal(created.data.request.model, model);
+      assert.match(created.data.message, new RegExp(model));
+
+      const explicit = await jsonRequest(baseUrl, "/api/seedance/create", {
+        ...body, input: { ...body.input, model: "explicit-provider-model" },
+      });
+      assert.equal(explicit.response.status, 200);
+      assert.equal(explicit.data.request.model, "explicit-provider-model");
+    }
+    const invalid = await jsonRequest(baseUrl, "/api/seedance/create", {
+      input: { prompt: "不支持的时长", generation_type: "text-to-video", duration: 31 },
+      config: { video: { enabled: false, model: "doubao-seedance-2.5" } },
+    });
+    assert.equal(invalid.response.status, 400);
+    assert.match(invalid.data.error, /时长/);
+  });
+
+  await t.test("live adapter forwards 30 seconds and new model IDs to the provider unchanged", async () => {
+    for (const model of ["doubao-seedance-2.5", "provider-custom-video-model"]) {
+      const created = await jsonRequest(baseUrl, "/api/seedance/create", {
+        input: {
+          prompt: "图片1中的商品、图片2中的人物与图片3中的场景，完成30秒产品展示。",
+          generation_type: "reference-to-video",
+          reference_policy: "product-interaction-scene-strict-v2",
+          product_image_url: "https://cdn.example.com/product-original.png",
+          person_image_url: "https://cdn.example.com/generated-person.png",
+          scene_image_urls: ["https://cdn.example.com/generated-scene.png"],
+          duration: 30,
+          ratio: "9:16",
+        },
+        config: { video: { enabled: true, apiKey: "test-key", baseUrl: providerBaseUrl, model } },
+      });
+      assert.equal(created.response.status, 200);
+      assert.equal(created.data.mode, "live");
+      assert.equal(receivedCreatePayload.duration, 30);
+      assert.equal(receivedCreatePayload.model, model);
+      assert.equal(created.data.parameterAudit.duration, 30);
+      assert.equal(created.data.parameterAudit.model, model);
+      assert.equal(created.data.parameterAudit.referenceCount, 3);
+    }
   });
 
   await t.test("image generation uses the product image through multipart edits", async () => {

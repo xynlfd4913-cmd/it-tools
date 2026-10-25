@@ -1,0 +1,38 @@
+Seedance UGC Studio 本地部署
+
+项目位置：本说明所在的 it-tools 文件夹，可放在 E 盘任意项目目录。
+仓库来源：https://github.com/xynlfd4913-cmd/it-tools.git
+当前版本：v0.2.0（更新日期：2026-10-25）
+
+一、日常使用
+1. 首次使用先安装 Node.js 20.9 或更高版本，并在 seedance-ugc-studio 目录运行 npm ci。
+2. 双击“启动工作台.cmd”，程序将在后台启动，并打开网页。
+3. 地址：http://127.0.0.1:4173/；合作接单：http://127.0.0.1:4173/#business
+4. 双击“停止工作台.cmd”即可停止本项目的后台进程。
+5. 关机后后台进程会停止，下次使用时再次双击启动文件。
+
+合作经营：在顶部“合作接单”中添加推广 / 制作伙伴，记录客户需求、定金、成本与交付链接，按真实到账的直接推荐订单核对佣金。推广包和任务单可复制给伙伴，详情见 seedance-ugc-studio\COOPERATE.md。当前由本机集中管理，不提供公网多用户登录或自动转账。
+
+二、配置生成接口
+进入页面右上角齿轮，填写自己的图片、视频模型接口地址与 API Key。
+也可编辑 seedance-ugc-studio\.env，填写对应密钥后停止并重新启动。
+当前没有填写真实密钥。演示流程可使用，真实图片和视频生成需要有效接口。
+本次部署不调用收费生成接口。
+
+三、目录说明
+seedance-ugc-studio：项目源码、依赖与配置。
+seedance-ugc-studio\.runtime：进程编号与运行日志。
+seedance-ugc-studio\public\generated：生成素材。
+.env 只保存在本机，不要公开或提交密钥。
+
+四、故障处理
+页面打不开时，先双击启动文件；如有错误，窗口会暂停显示。
+日志位置：seedance-ugc-studio\.runtime\server.stderr.log
+修改 .env 的 PORT 可更换端口；保持 HOST=127.0.0.1 供本机使用。
+
+五、手动运行
+在 seedance-ugc-studio 目录中运行：
+npm ci
+npm start
+
+启动前如已使用双击脚本运行，请先用停止文件关闭，避免端口冲突。

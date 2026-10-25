@@ -1,5 +1,11 @@
 .git
 .env
+.env.*
+!.env.example
+.runtime
+node_modules
+public/generated
+artifacts
 *.log
 desktop-preview.png
 mobile-preview.png
